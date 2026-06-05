@@ -1,84 +1,63 @@
 # Raspberry Pi Weather ML Station
 
-Projeto de uma estação meteorológica embarcada baseada em Raspberry Pi e sensor BME280, capaz de coletar dados ambientais, armazenar leituras em CSV, disponibilizar informações por meio de uma interface web local e executar modelos de machine learning para predição de temperatura.
+Estação meteorológica embarcada com Raspberry Pi e sensor BME280 para coleta de temperatura, pressão e umidade, armazenamento em CSV, visualização em dashboard web local e predição de temperatura com modelos de machine learning.
 
-## Sobre o projeto
+## Sobre o Projeto
 
-Este projeto propõe uma solução de baixo custo para coleta e análise de dados meteorológicos, com foco em aplicações de monitoramento climático local.
+O projeto propõe uma solução de baixo custo para monitoramento climático local. A Raspberry Pi lê o sensor BME280 via I2C, registra as medições em CSV, disponibiliza os dados por um servidor HTTP local e permite executar modelos Keras para estimar temperaturas futuras.
 
-O sistema utiliza um sensor BME280 conectado a uma Raspberry Pi para realizar leituras de temperatura, umidade e pressão atmosférica. Os dados coletados são armazenados localmente em arquivos CSV e disponibilizados por meio de uma interface web. Além disso, o projeto inclui modelos computacionais treinados para realizar predições de temperatura em janelas futuras de 24 horas e 120 horas.
+Para entender melhor a motivação, arquitetura, escolhas de hardware/software e resultados do projeto, leia o relatório final em [`relatorio.pdf`](relatorio.pdf). Os arquivos editáveis usados na elaboração do relatório estão em [`docs/report-source/`](docs/report-source/).
 
 ## Funcionalidades
 
-* Coleta de dados ambientais com sensor BME280
-* Comunicação via protocolo I2C
-* Armazenamento das leituras em arquivos CSV
-* Servidor HTTP local para disponibilização dos dados
-* Dashboard web para visualização das medições
-* Modelos de machine learning para predição de temperatura
-* Scripts auxiliares para execução e gerenciamento do sistema na Raspberry Pi
+- Coleta de temperatura, pressão e umidade com o sensor BME280.
+- Comunicação I2C na Raspberry Pi.
+- Registro das leituras em [`app/runtime-data/data.csv`](app/runtime-data/data.csv).
+- Servidor HTTP local para servir os dados coletados.
+- Dashboard web em [`app/web/`](app/web/).
+- Modelos Keras para predição de temperatura em janelas de 24 e 120 passos.
+- Scripts para tratamento dos dados históricos do INMET.
 
-## Tecnologias utilizadas
+## Estrutura
 
-* Raspberry Pi 3 Model B
-* Sensor BME280
-* C++
-* Python
-* TensorFlow/Keras
-* HTML5
-* CSS3
-* JavaScript
-* CSV
-* I2C
-* Linux/systemd
-
-## Arquitetura geral
-
-O sistema é dividido em três partes principais:
-
-### 1. Coleta embarcada de dados
-
-Responsável pela comunicação com o sensor BME280, leitura dos dados ambientais e armazenamento das medições em arquivos CSV.
-
-### 2. Visualização web
-
-Interface web local que permite acompanhar os dados coletados pelo sensor de forma simples e acessível.
-
-### 3. Predição com machine learning
-
-Modelos treinados em Python para analisar séries temporais de temperatura e gerar previsões futuras.
-
-## Componentes principais
-
-* `SensorBME280`: módulo responsável pela comunicação com o sensor.
-* `CSVLogger`: módulo responsável pelo registro das leituras em arquivo CSV.
-* `HTTPServer`: servidor responsável por disponibilizar os dados coletados.
-* `model/python/`: scripts relacionados ao treinamento e execução dos modelos de predição.
-* `src/web/`: arquivos da interface web.
-
-## Modelos de predição
-
-O projeto conta com dois modelos principais:
-
-* `t24v1.keras`: modelo para predição de temperatura das próximas 24 horas.
-* `t120v1.keras`: modelo para predição de temperatura das próximas 120 horas.
-
-Os modelos foram desenvolvidos com base em dados meteorológicos históricos e utilizados para avaliar a viabilidade de executar inferências diretamente na Raspberry Pi.
-
-## Como executar
-
-Clone o repositório:
-
-```bash
-git clone https://github.com/lcsgborges/raspberrypi-weather-ml-station.git
-cd raspberrypi-weather-ml-station
+```text
+relatorio.pdf          Relatório final do projeto
+app/                   Aplicação embarcada, dashboard web e dados de runtime
+app/embedded/          Código C++ do sensor, servidor HTTP e scripts da Raspberry Pi
+app/runtime-data/      CSV gerado pelo coletor embarcado
+app/web/               Dashboard web
+data/                  Dados históricos do INMET e scripts de processamento
+data/raw/inmet/        CSVs brutos do INMET
+data/processed/        Datasets tratados
+docs/                  Referências, datasheets e fontes do relatório
+ml/                    Modelos treinados e scripts Python de treinamento/inferência
 ```
 
-Crie e ative um ambiente virtual Python:
+## Tecnologias
+
+- Raspberry Pi 3 Model B
+- Sensor BME280
+- C++17
+- Python
+- TensorFlow/Keras
+- Pandas e NumPy
+- HTML, CSS e JavaScript
+- Linux/systemd
+
+## Modelos
+
+- [`ml/models/t24v1.keras`](ml/models/t24v1.keras): predição de temperatura para 24 passos.
+- [`ml/models/t120v1.keras`](ml/models/t120v1.keras): predição de temperatura para 120 passos.
+
+Os scripts relacionados aos modelos ficam em [`ml/scripts/`](ml/scripts/). O treinamento usa dados históricos tratados em [`data/processed/dataset1.csv`](data/processed/dataset1.csv) e [`data/processed/dataset2.csv`](data/processed/dataset2.csv).
+
+## Execução em Ambiente Python
+
+Crie e ative um ambiente virtual:
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
 Instale as dependências:
@@ -87,13 +66,60 @@ Instale as dependências:
 pip install -r requirements.txt
 ```
 
-Execute o servidor de predição, caso deseje utilizar os modelos de machine learning:
+Execute o servidor de predição:
 
 ```bash
-python model/python/prediction_server.py
+python ml/scripts/prediction_server.py
 ```
 
-Para executar a aplicação embarcada na Raspberry Pi, verifique os scripts auxiliares disponíveis no diretório do projeto, como:
+Treine novamente o modelo de 24 passos, se necessário:
+
+```bash
+python ml/scripts/train_model.py
+```
+
+Endpoints principais:
+
+- `http://localhost:5000/api/predict`
+- `http://localhost:5000/api/status`
+
+## Tratamento de Dados
+
+Gerar o dataset de 2023-2024:
+
+```bash
+python data/scripts/process_2023_2024.py
+```
+
+Gerar o dataset de 2020-2024:
+
+```bash
+python data/scripts/process_2020_2024.py
+```
+
+Exportar a amostra usada para teste do modelo de 120 passos:
+
+```bash
+python data/scripts/export_mini_csv.py
+```
+
+## Execução na Raspberry Pi
+
+Na Raspberry Pi, acesse a pasta do coletor:
+
+```bash
+cd app/embedded
+chmod +x setup_rpi.sh start_server.sh check_status.sh stop_and_clean.sh clear_csv.sh
+./setup_rpi.sh
+```
+
+Após reiniciar, o dashboard pode ser acessado na rede local:
+
+```bash
+http://<IP_DA_RPI>:8080
+```
+
+Comandos úteis:
 
 ```bash
 ./start_server.sh
@@ -104,26 +130,22 @@ Para executar a aplicação embarcada na Raspberry Pi, verifique os scripts auxi
 
 ## Resultados
 
-O projeto demonstrou a viabilidade de coletar dados meteorológicos com uma Raspberry Pi e utilizar modelos de machine learning para realizar predições de temperatura.
+O projeto demonstrou a viabilidade de coletar dados meteorológicos com uma Raspberry Pi e utilizar modelos de machine learning para predições de temperatura. A execução dos modelos na placa também foi avaliada, indicando que inferências simples são possíveis mesmo em um ambiente com recursos computacionais limitados.
 
-A execução dos modelos diretamente na placa também foi avaliada, indicando que é possível realizar inferências mesmo em um ambiente com recursos computacionais limitados.
+## Limitações e Melhorias Futuras
 
-## Limitações e melhorias futuras
-
-Alguns pontos ainda podem ser evoluídos:
-
-* Melhorar a precisão dos modelos de predição
-* Integrar completamente o dashboard web com as predições dos modelos
-* Adicionar tratamento para médias horárias
-* Utilizar também dados de pressão e umidade nos modelos
-* Desenvolver uma estrutura física mais robusta para uso em ambiente externo
-* Melhorar a estabilidade da conexão física do sensor
+- Melhorar a precisão dos modelos de predição.
+- Integrar completamente o dashboard web com as predições dos modelos.
+- Adicionar tratamento específico para médias horárias.
+- Usar pressão e umidade como entradas adicionais nos modelos.
+- Desenvolver uma estrutura física mais robusta para uso externo.
+- Melhorar a estabilidade da conexão física do sensor.
 
 ## Autores
 
 - Lucas Guimarães Borges
 - Ryan Salles
-  
+
 ## Licença
 
 Este projeto está disponível para fins educacionais e experimentais.
