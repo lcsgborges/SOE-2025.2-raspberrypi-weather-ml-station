@@ -6,8 +6,8 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/home/pi/trabalho/src/BME280
-ExecStart=/home/pi/trabalho/src/BME280/bme280_server
+WorkingDirectory=@PROJECT_ROOT@/app/embedded
+ExecStart=@PROJECT_ROOT@/app/embedded/bme280_server
 Restart=always
 RestartSec=10
 StandardOutput=journal
@@ -18,4 +18,3 @@ ExecStartPost=/bin/bash -c 'sleep 3 && echo "Servidor BME280 iniciado! Acesse: h
 
 [Install]
 WantedBy=multi-user.target
-

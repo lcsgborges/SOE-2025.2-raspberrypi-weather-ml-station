@@ -1,43 +1,47 @@
 #!/bin/bash
 
-# Script para iniciar o servidor BME280 e servidor de predições em background
+# Inicia o servidor BME280 e, quando disponível, o servidor de predições.
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+ML_DIR="$PROJECT_ROOT/ml"
+PREDICTION_SERVER="$ML_DIR/scripts/prediction_server.py"
+VENV_DIRS=("$PROJECT_ROOT/.venv" "$ML_DIR/.venv" "$ML_DIR/venv")
 
-# Caminho do servidor de predições
-PREDICTION_SERVER="$SCRIPT_DIR/../../model/python/prediction_server.py"
+cd "$SCRIPT_DIR"
 
 echo "=== Servidor BME280 + Predições IA ==="
 
-# Compilar se necessário
 if [ ! -f "./bme280_server" ]; then
     echo "Compilando servidor BME280..."
-    make > /dev/null 2>&1
+    make
 fi
 
-# Criar diretório de database
-mkdir -p ../database
+mkdir -p ../runtime-data
 
-# Verificar I2C
-if ! ls /dev/i2c-* 1> /dev/null 2>&1; then
+if ! ls /dev/i2c-* >/dev/null 2>&1; then
     echo "I2C não detectado. Execute: sudo raspi-config -> Interface Options -> I2C"
     exit 1
 fi
 
-# Iniciar servidor BME280 em background
 echo "Iniciando servidor BME280 em background..."
 sudo nohup ./bme280_server > /tmp/bme280.log 2>&1 &
 BME280_PID=$!
 
 sleep 2
 
-# Verificar se Python está disponível
-if command -v python3 &> /dev/null; then
-    # Verificar se o script de predição existe
+if command -v python3 >/dev/null 2>&1; then
     if [ -f "$PREDICTION_SERVER" ]; then
+        for VENV_DIR in "${VENV_DIRS[@]}"; do
+            if [ -f "$VENV_DIR/bin/activate" ]; then
+                # shellcheck disable=SC1091
+                source "$VENV_DIR/bin/activate"
+                break
+            fi
+        done
+
         echo "Iniciando servidor de predições (IA) em background..."
-	cd /home/pi/trabalho/model; source venv/bin/activate 
         nohup python3 "$PREDICTION_SERVER" > /tmp/prediction_server.log 2>&1 &
         PREDICTION_PID=$!
         sleep 2
@@ -55,17 +59,15 @@ else
     echo "[AVISO] Python3 não encontrado - servidor de predições não iniciado"
 fi
 
-# Obter IP
 IP=$(hostname -I | awk '{print $1}')
 
 echo ""
 echo "Servidores rodando em background!"
+echo "BME280 PID: $BME280_PID"
 echo ""
-echo "┌─────────────────────────────────────────┐"
-echo "│  Dashboard:  http://$IP:8080            │"
-echo "│  API Sensor: http://$IP:8080/api/data   │"
-echo "│  API IA:     http://$IP:5000/api/predict│"
-echo "└─────────────────────────────────────────┘"
+echo "Dashboard:  http://$IP:8080"
+echo "API Sensor: http://$IP:8080/api/data"
+echo "API IA:     http://$IP:5000/api/predict"
 echo ""
 echo "Comandos úteis:"
 echo "  Logs BME280:    tail -f /tmp/bme280.log"

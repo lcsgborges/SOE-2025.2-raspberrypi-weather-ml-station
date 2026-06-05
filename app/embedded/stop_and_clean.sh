@@ -1,6 +1,10 @@
 #!/bin/bash
 
-# Script para parar e limpar o servidor BME280 e servidor de predições
+# Para os serviços do projeto e limpa artefatos gerados localmente.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
 echo "=== Parando Servidores BME280 + Predições ==="
 echo ""
@@ -66,7 +70,7 @@ fi
 echo ""
 echo "[5] Limpando executável..."
 if [ -f "./bme280_server" ]; then
-    rm -f ./bme280_server
+    make clean
     echo "Executável removido"
 else
     echo "Executável não encontrado"

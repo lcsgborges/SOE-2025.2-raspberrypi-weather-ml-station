@@ -1,40 +1,28 @@
 #!/bin/bash
 
-# Script para verificar status do servidor BME280
+# Verifica o status do servidor BME280 e do servidor de predições.
+set -euo pipefail
 
 echo "=== Status do Servidor BME280 ==="
 echo ""
 
-# Verificar se o processo está rodando
 if pgrep -x "bme280_server" > /dev/null; then
     echo "Servidor está RODANDO"
-    
-    # Pegar o PID
+
     PID=$(pgrep -x "bme280_server")
     echo "   PID: $PID"
-    
-    # Verificar há quanto tempo está rodando
     echo "   Tempo ativo: $(ps -o etime= -p $PID)"
-    
-    # Obter IP
+
     IP=$(hostname -I | awk '{print $1}')
-    
     echo ""
-    echo "┌─────────────────────────────────────────┐"
-    echo "│  Acesse o Dashboard:                    │"
-    echo "│                                         │"
-    echo "│  http://$IP:8080                        │"
-    echo "│                                         │"
-    echo "└─────────────────────────────────────────┘"
+    echo "Dashboard: http://$IP:8080"
     echo ""
-    
-    # Verificar porta
+
     if netstat -tuln 2>/dev/null | grep -q ":8080"; then
         echo "Porta 8080 está aberta"
     else
         echo "Porta 8080 pode não estar acessível"
     fi
-    
 else
     echo "Servidor NÃO está rodando"
     echo ""
@@ -46,7 +34,16 @@ else
     echo ""
 fi
 
-# Verificar se o serviço systemd está ativo
+echo ""
+echo "--- Status do Servidor de Predições ---"
+if pgrep -f "prediction_server.py" > /dev/null; then
+    PREDICTION_PID=$(pgrep -f "prediction_server.py")
+    echo "Servidor de predições: RODANDO"
+    echo "   PID: $PREDICTION_PID"
+else
+    echo "Servidor de predições: INATIVO"
+fi
+
 echo ""
 echo "--- Status do Serviço Systemd ---"
 if systemctl is-enabled bme280.service &>/dev/null; then
@@ -64,5 +61,6 @@ fi
 echo ""
 echo "Comandos úteis:"
 echo "  Ver logs completos: tail -f /tmp/bme280.log"
+echo "  Ver logs de IA:     tail -f /tmp/prediction_server.log"
 echo "  Parar servidor: sudo pkill bme280_server"
 echo "  Status systemd: sudo systemctl status bme280"

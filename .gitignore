@@ -4,3 +4,8 @@ __pycache__
 .venv
 venv
 tf/
+*.out
+ml/scripts/prediction.png
+app/embedded/bme280_server
+app/embedded/bme280_rpi
+app/embedded/nohup.out

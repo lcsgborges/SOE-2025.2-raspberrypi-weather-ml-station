@@ -91,7 +91,7 @@ void HTTPServer::handleClient(int client_socket) {
     }
     // Servir arquivo CSV de forma thread-safe
     else if (path.find("data.csv") != std::string::npos) {
-        std::string csvContent = CSVLogger::readCSVFile("../database/data.csv");
+        std::string csvContent = CSVLogger::readCSVFile("../runtime-data/data.csv");
         if (!csvContent.empty()) {
             sendResponse(client_socket, 200, "text/csv", csvContent);
         } else {

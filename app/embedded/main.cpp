@@ -36,7 +36,7 @@ void sensorThread() {
         return;
     }
     
-    CSVLogger logger("../database/data.csv");
+    CSVLogger logger("../runtime-data/data.csv");
     
     while (true) {
         // IMPORTANTE: Ler temperatura primeiro (necessário para calibração da umidade)
